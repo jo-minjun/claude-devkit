@@ -7,60 +7,142 @@
 ## 페이즈 흐름도
 
 ```
-[Planning] ─── Design Brief ───→ [Design]
-     ↑                              │
-     │                       Design Contract
-     │                              ↓
-     │                        [Test First]
-     │                              │
-     │ GATE-3,4 위반           Test Contract
-     │                         + 테스트 코드
-     │                              ↓
-     └─────────────────────── [Implementation]
-                                    │
-                              GATE-1 통과 필수
-                                    │
-                               구현 코드
-                                    ↓
-                             [Verification]
-                                    │
-                              GATE-2 통과 필수
-                                    │
-                    ┌───────────────┴───────────────┐
-                    │                               │
-              테스트 실패                      테스트 통과
-                    │                               │
-                    ↓                               ↓
-             [Implementation]                 [Complete]
-              또는 [Design]
+┌─────────────────────────────────────────────────────────────────┐
+│                    PARALLEL DISCOVERY                            │
+├────────────────────────┬────────────────────────────────────────┤
+│    [Code Explore]      │           [Planner]                     │
+│          │             │               │                         │
+│          ▼             │               ▼                         │
+│    explored_files      │    preliminary_design_brief             │
+└────────────┬───────────┴───────────────┬────────────────────────┘
+             │                           │
+             └─────────────┬─────────────┘
+                           ▼
+                       [Merge] ─── design_brief ───→ [Design]
+                           ↑                              │
+                           │                       Design Contract
+                           │                              ↓
+                           │                        [Test First]
+                           │                              │
+                           │ GATE-3,4 위반           Test Contract
+                           │                         + 테스트 코드
+                           │                              ↓
+                           └─────────────────────── [Implementation]
+                                                          │
+                                                    GATE-1 통과 필수
+                                                          │
+                                                     구현 코드
+                                                          ↓
+                                                   [Verification]
+                                                          │
+                                                    GATE-2 통과 필수
+                                                          │
+                                      ┌───────────────────┴───────────────┐
+                                      │                                   │
+                                테스트 실패                          테스트 통과
+                                      │                                   │
+                                      ↓                                   ↓
+                               [Implementation]                     [Complete]
+                                또는 [Design]
 ```
 
 ---
 
-## 1. Planning 페이즈
+## 0. Parallel Discovery 페이즈
 
-### 담당 에이전트
-Planner
+### 개요
+Code Explore와 Planner를 병렬로 실행하여 초기 탐색 시간을 단축한다.
+
+### 구성 요소
+
+#### 0a. Code Explore (Task A)
+
+**담당 에이전트**: Code Explore
+
+**입력**
+- 프로젝트 경로
+- 참고 프로젝트 경로 (선택)
+
+**절차**
+1. 디렉토리 구조 파악
+2. CLAUDE.md, AGENTS.md 등 설정 파일 확인
+3. 주요 소스 파일 요약
+
+**출력**
+explored_files (프로젝트 구조 및 주요 파일 요약)
+
+#### 0b. Planner (Task B)
+
+**담당 에이전트**: Planner
+
+**입력**
+- 사용자 원본 요청
+- 프로젝트 기본 정보 (경로, CLAUDE.md)
+
+**절차**
+1. 사용자 요청 분석
+2. 코드 탐색 결과 없이 잠정 계획 수립
+3. 불확실한 부분은 assumptions로 명시
+4. preliminary_design_brief 생성
+
+**출력**
+preliminary_design_brief (assumptions 필드 포함)
+
+**특이사항**
+- 코드 구조를 모르므로 가정(assumptions)을 명시적으로 기록
+- 파일 경로는 일반적인 컨벤션 기반 추정
+
+### 병렬 실행 제약
+- 두 에이전트 간 직접 통신 불가
+- 각 Task는 독립적으로 실행
+- 오케스트레이터가 두 Task 완료를 모두 대기
+
+### 다음 페이즈
+Merge
+
+---
+
+## 1. Merge 페이즈
+
+### 담당
+오케스트레이터 (서브에이전트 아님)
 
 ### 입력
-- 사용자 원본 요청
-- 프로젝트 컨텍스트 (CLAUDE.md, 디렉토리 구조)
+- explored_files (Code Explore 결과)
+- preliminary_design_brief (Planner 결과)
 
 ### 절차
-1. 사용자 요청 분석
-2. 단일 작업으로 축소 (큰 요청은 분할)
-3. 완료 조건 정의
-4. 스코프 경계 설정 (scope_in / scope_out)
-5. Design Brief 생성
+
+1. **가정 검증**
+   - preliminary_design_brief의 assumptions를 explored_files로 검증
+   - 각 가정이 맞는지/틀린지 판정
+
+2. **스코프 조정**
+   - scope_in의 파일/컴포넌트가 실제로 존재하는지 확인
+   - 존재하지 않으면: 유사한 파일이 있으면 경로 수정, 새로 만들어야 하면 유지
+   - 예상치 못한 관련 파일 발견 시 scope_in 추가
+
+3. **의존성 보완**
+   - explored_files에서 발견된 의존성 관계 반영
+   - 누락된 의존성 추가
+
+4. **완료 조건 보강**
+   - 코드 구조 기반으로 완료 조건 구체화
+   - 테스트 가능한 형태로 조정
+
+5. **최종 design_brief 생성**
+   - assumptions 필드 제거 (검증 완료)
+   - 조정된 내용으로 최종 Contract 생성
 
 ### 출력
-Design Brief
+design_brief (최종)
 
 ### 다음 페이즈
 Design
 
-### 실패 조건
-- 요청이 모호하여 작업 정의 불가 → 사용자에게 명확화 요청
+### 검증 실패 시
+- 가정이 대부분 틀린 경우: Planner 재호출 (explored_files 주입, 순차 모드)
+- 사소한 조정만 필요한 경우: 오케스트레이터가 직접 수정
 
 ---
 
@@ -89,7 +171,7 @@ Design Contract
 Test First
 
 ### 실패 조건
-- 기존 아키텍처와 충돌 → Design Brief 수정 필요 (Planning 복귀)
+- 기존 아키텍처와 충돌 → Design Brief 수정 필요 (Merge 복귀)
 
 ---
 
@@ -209,9 +291,10 @@ Test Result Report
 
 | 현재 페이즈 | 성공 시 | 실패 시 |
 |------------|--------|--------|
-| Planning | → Design | 사용자 명확화 요청 |
-| Design | → Test First | → Planning |
+| Parallel Discovery | → Merge | 재시도 |
+| Merge | → Design | → Planner 재호출 (순차 모드) |
+| Design | → Test First | → Merge |
 | Test First | → Implementation | - |
-| Implementation | → Verification | → Planning (GATE-3) 또는 → Design (GATE-4) |
+| Implementation | → Verification | → Merge (GATE-3) 또는 → Design (GATE-4) |
 | Verification | → Complete | → Implementation 또는 → Design |
 | Complete | 종료 | - |

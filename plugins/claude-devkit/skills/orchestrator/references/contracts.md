@@ -4,6 +4,64 @@
 
 ---
 
+## Preliminary Design Brief
+
+Planner → Orchestrator(Merge)로 전달되는 잠정 작업 정의서.
+코드 탐색 결과 없이 생성되므로 **assumptions 필드가 필수**이다.
+
+### 형식
+
+```yaml
+preliminary_design_brief:
+  task_name: 사용자 인증 기능
+  objective: JWT 기반 로그인/로그아웃 구현
+
+  # 필수: 코드 구조를 모르는 상태에서의 가정
+  assumptions:
+    - "인증 관련 코드는 auth/ 또는 security/ 디렉토리에 있을 것"
+    - "Spring Security를 사용 중일 것"
+    - "User 엔티티가 이미 존재할 것"
+    - "기존 JWT 라이브러리가 있을 것"
+
+  completion_criteria:
+    - 로그인 API 동작
+    - JWT 토큰 발급
+    - 토큰 검증 미들웨어 동작
+
+  scope_in:
+    - POST /auth/login 엔드포인트
+    - POST /auth/logout 엔드포인트
+    - JwtTokenProvider 클래스 (추정)
+    - JwtAuthenticationFilter (추정)
+
+  scope_out:
+    - 회원가입 기능
+    - 소셜 로그인
+
+  dependencies:
+    - Spring Security 설정 (추정)
+    - User 엔티티 (추정)
+```
+
+### 필수 필드
+
+| 필드 | 설명 |
+|------|------|
+| task_name | 작업 식별 이름 |
+| objective | 달성 목표 |
+| **assumptions** | **코드 구조에 대한 가정 목록 (필수)** |
+| completion_criteria | 완료 판단 기준 |
+| scope_in | 구현 범위 내 항목 (추정 경로 허용) |
+| scope_out | 명시적 제외 항목 |
+
+### 검증 후 변환
+
+Merge 페이즈에서 `explored_files`와 비교 검증 후 최종 `design_brief`로 변환된다.
+- assumptions가 맞으면: 해당 가정 기반으로 scope_in 구체화
+- assumptions가 틀리면: 실제 구조에 맞게 수정
+
+---
+
 ## Design Brief
 
 Planner → Architect로 전달되는 작업 정의서.

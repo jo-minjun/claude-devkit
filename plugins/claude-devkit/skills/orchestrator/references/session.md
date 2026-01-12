@@ -17,14 +17,26 @@
 # ~/.claude/claude-devkit/sessions/{hash}.yaml
 session:
   # 메타데이터
-  project_path: /Users/.../vroong-point-internal-api
-  reference_path: /Users/.../vroong-hectofinancial-epm  # 참고 프로젝트 (있는 경우)
+  project_path: /Users/.../my-project
+  reference_path: /Users/.../reference-project  # 참고 프로젝트 (있는 경우)
   created_at: 2024-01-15T10:00:00
   updated_at: 2024-01-15T14:30:00
 
   # 현재 진행 상태
   current_task: M2
-  current_phase: implementation
+  current_phase: implementation  # parallel_discovery | merge | design | test_first | implementation | verification | complete
+
+  # 병렬 탐색 상태 (Parallel Discovery용)
+  parallel_discovery:
+    status: completed  # pending | running | completed
+    code_explore:
+      status: completed
+      started_at: 2024-01-15T10:00:00
+      completed_at: 2024-01-15T10:01:30
+    planner:
+      status: completed
+      started_at: 2024-01-15T10:00:00
+      completed_at: 2024-01-15T10:02:00
 
   # 작업 목록
   tasks:
@@ -44,24 +56,39 @@ session:
 
   # 탐색 결과 캐시
   explored_files:
-    - path: src/main/.../HectoMpsStore.java
-      summary: "상점 엔티티. 필드: mid, description. 메서드: create, update"
+    - path: src/main/.../Store.java
+      summary: "상점 엔티티. 필드: id, name. 메서드: create, update"
       explored_at: M1
 
-    - path: src/main/.../HectoMpsCustomer.java
-      summary: "회원 엔티티. 필드: pointAccountNo, customerId 등"
+    - path: src/main/.../Customer.java
+      summary: "고객 엔티티. 필드: id, email 등"
       explored_at: M1
 
   # Contract 저장소
   contracts:
+    # 잠정 Design Brief (Planner가 코드탐색 없이 생성)
+    preliminary_design_brief: |
+      task_name: Service 레이어 구현
+      objective: Store, Customer 서비스 구현
+      assumptions:
+        - "서비스 클래스는 src/main/service에 위치할 것"
+        - "Repository 인터페이스가 이미 존재할 것"
+      completion_criteria:
+        - StoreService CRUD
+      scope_in:
+        - Service 클래스 구현 (추정)
+      scope_out:
+        - Controller 구현
+
+    # 최종 Design Brief (Merge 후 생성)
     design_brief: |
       task_name: Service 레이어 구현
-      objective: Store, Customer, Mtrdno 서비스 구현
+      objective: Store, Customer 서비스 구현
       completion_criteria:
-        - HectoMpsStoreService CRUD
-        - HectoMpsCustomerService CRUD
+        - StoreService CRUD
+        - CustomerService CRUD
       scope_in:
-        - Service 클래스 구현
+        - src/main/java/com/example/service/StoreService.java
       scope_out:
         - Controller 구현
 
@@ -71,15 +98,15 @@ session:
         - Service는 Repository만 의존
         - Entity에 비즈니스 로직 위임
       interfaces:
-        - name: HectoMpsStoreService
-          methods: [listStores, createStore, getStore, updateStore]
+        - name: StoreService
+          methods: [list, create, get, update]
 
     test_contract: |
       task: Service 레이어 구현
       test_cases:
         - name: createStore_정상_생성
-          target: HectoMpsStoreService.createStore
-      test_file_path: src/test/.../HectoMpsStoreServiceTest.java
+          target: StoreService.create
+      test_file_path: src/test/.../StoreServiceTest.java
 
     test_result: null  # 테스트 실행 후 채워짐
 ```
@@ -93,7 +120,37 @@ session:
 동작:
   1. 새 세션 파일 생성
   2. 프로젝트 경로, 참고 프로젝트 설정
-  3. Discovery 페이즈 실행
+  3. current_phase = "parallel_discovery"
+  4. Parallel Discovery 페이즈 실행
+```
+
+### 1.5. Parallel Discovery (병렬 탐색)
+
+```
+동작:
+  1. parallel_discovery.status = "running"
+  2. 병렬로 두 Task 에이전트 호출:
+     - Code Explore: 프로젝트 구조 탐색
+     - Planner: 잠정 Design Brief 생성
+  3. 각 Task 완료 시 상태 업데이트:
+     - Code Explore 완료 → explored_files 저장
+     - Planner 완료 → preliminary_design_brief 저장
+  4. 두 Task 모두 완료 시:
+     - parallel_discovery.status = "completed"
+     - current_phase = "merge"
+```
+
+### 1.6. Merge (결과 병합)
+
+```
+동작:
+  1. explored_files와 preliminary_design_brief 비교
+  2. assumptions 검증:
+     - 맞는 가정: scope_in 구체화 (실제 경로로 교체)
+     - 틀린 가정: 실제 구조에 맞게 수정
+  3. 최종 design_brief 생성 → contracts.design_brief
+  4. current_phase = "design"
+  5. 가정 50% 이상 불일치 시: Planner 재호출 (순차 모드)
 ```
 
 ### 2. 세션 업데이트 (매 페이즈 완료 후)
@@ -145,8 +202,8 @@ injected_context:
 # 이미 탐색된 파일은 요약만 제공
 explored_files_summary: |
   [이미 분석된 파일]
-  - HectoMpsStore.java: 상점 엔티티. create, update 메서드 보유
-  - HectoMpsCustomer.java: 회원 엔티티. FK로 Store 참조
+  - Store.java: 상점 엔티티. create, update 메서드 보유
+  - Customer.java: 고객 엔티티. FK로 Store 참조
 
   상세 내용 필요 시 Read 도구로 직접 조회하세요.
 ```
@@ -163,7 +220,7 @@ explored_files_summary: |
 ```
 ╔══════════════════════════════════════════════════════════╗
 ║  Orchestrator Session                                     ║
-║  Project: vroong-point-internal-api                       ║
+║  Project: my-project                                      ║
 ╠══════════════════════════════════════════════════════════╣
 ║                                                           ║
 ║  M1 Repository    ✅ completed                            ║

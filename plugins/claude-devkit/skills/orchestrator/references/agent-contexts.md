@@ -68,21 +68,28 @@ explored_files:
 
 ---
 
-## 1. Planner 에이전트
+## 1. Planner 에이전트 (Parallel Discovery용)
 
 ### 역할
-요청 분석 및 작업 정의
+코드 탐색 결과 없이 잠정 작업 정의
 
 ### 주입할 컨텍스트
 ```yaml
 context:
-  - 공통 헤더 (세션 컨텍스트 + 탐색된 파일)
-  - 사용자 원본 요청 (전문)
+  - 프로젝트 경로
+  - CLAUDE.md 내용 (있는 경우)
+  - 사용자 원본 요청
+  # explored_files는 주입하지 않음 (병렬 실행)
 ```
 
 ### 프롬프트 템플릿
 ```
-{{공통 헤더}}
+[프로젝트 정보]
+- 경로: {{session.project_path}}
+{{#if claudemd_content}}
+- 프로젝트 설정:
+{{claudemd_content}}
+{{/if}}
 
 [사용자 요청]
 {{user_request}}
@@ -92,25 +99,72 @@ context:
 1. 요청을 분석하여 단일 작업으로 축소
 2. 작업 완료 조건을 명확히 정의
 3. 스코프 경계를 설정 (포함/미포함 항목 명시)
-4. Design Brief를 다음 형식으로 출력
+4. **코드 구조를 모르므로 가정(assumptions)을 명시적으로 기록**
+5. Preliminary Design Brief를 다음 형식으로 출력
 
 [출력 형식]
-design_brief:
+preliminary_design_brief:
   task_name: [작업명]
   objective: [목표]
+  assumptions:  # 필수 - 코드 구조에 대한 가정
+    - "[가정 1: 예상되는 파일 위치, 기존 구조 등]"
+    - "[가정 2: ...]"
   completion_criteria:
     - [완료 조건 1]
     - [완료 조건 2]
   scope_in:
-    - [포함 항목]
+    - [포함 항목 - 일반적인 경로 사용]
   scope_out:
     - [미포함 항목]
   dependencies:
-    - [의존성]
+    - [의존성 - 추정]
 ```
 
 ### 출력
-Design Brief → `session.contracts.design_brief`에 저장
+Preliminary Design Brief → `session.contracts.preliminary_design_brief`에 저장
+
+---
+
+## 1.5. Merge 로직 (오케스트레이터 직접 수행)
+
+### 목적
+병렬 실행된 Code Explore와 Planner 결과를 병합하여 최종 `design_brief` 생성
+
+### 입력
+- `session.explored_files` (Code Explore 결과)
+- `session.contracts.preliminary_design_brief` (Planner 결과)
+
+### 병합 알고리즘
+
+```
+1. assumptions 검증:
+   for each assumption in preliminary_design_brief.assumptions:
+     - explored_files에서 관련 파일 검색
+     - 일치/불일치 판정
+     - 불일치 시 correction 기록
+
+2. scope_in 조정:
+   for each item in preliminary_design_brief.scope_in:
+     - explored_files에서 매칭 파일 찾기
+     - 없으면: 유사 파일 검색, 또는 신규 생성 표시
+     - 있으면: 정확한 경로로 교체
+
+3. 의존성 보완:
+   - explored_files의 import/dependency 정보 활용
+   - preliminary_design_brief.dependencies 보강
+
+4. 최종 design_brief 생성:
+   - assumptions 제거 (검증 완료)
+   - 조정된 scope_in, scope_out, dependencies 적용
+   - completion_criteria 구체화
+```
+
+### 재실행 조건
+- assumptions 중 50% 이상 불일치 → Planner 재호출 (explored_files 주입, 순차 모드)
+- 사소한 불일치 → 오케스트레이터가 직접 조정
+
+### 출력
+최종 Design Brief → `session.contracts.design_brief`에 저장
 
 ---
 
@@ -317,29 +371,39 @@ Test Result Report → `session.contracts.test_result`에 저장
 │  ~/.claude/claude-devkit/sessions/{hash}.yaml                     │
 ├──────────────────────────────────────────────────────────────────┤
 │                                                                   │
-│  explored_files ───────────────────────────────────────────────▶  │
-│       │                                                           │
-│       ▼                                                           │
-│  [Code Explore] ──▶ explored_files 저장                          │
-│       │                                                           │
-│       ▼                                                           │
-│  [Planner] ──────▶ design_brief 저장                             │
-│       │                                                           │
-│       │ design_brief 주입                                         │
-│       ▼                                                           │
-│  [Architect] ────▶ design_contract 저장                          │
-│       │                                                           │
-│       │ design_contract 주입                                      │
-│       ▼                                                           │
-│  [QA Engineer] ──▶ test_contract 저장                            │
-│       │                                                           │
-│       │ design_contract + test_contract 주입                      │
-│       ▼                                                           │
-│  [Implementer] ──▶ 구현 코드 작성                                │
-│       │                                                           │
-│       │ test_contract 주입                                        │
-│       ▼                                                           │
-│  [QA Engineer] ──▶ test_result 저장                              │
+│  ┌─────────────────┐     ┌─────────────────────┐                 │
+│  │  [Code Explore] │     │     [Planner]        │   ◀── 병렬 실행 │
+│  │       │         │     │         │            │                 │
+│  │       ▼         │     │         ▼            │                 │
+│  │ explored_files  │     │ preliminary_design   │                 │
+│  │     저장        │     │ _brief 저장          │                 │
+│  └────────┬────────┘     └──────────┬───────────┘                 │
+│           │                         │                             │
+│           └────────────┬────────────┘                             │
+│                        ▼                                          │
+│              ┌─────────────────┐                                  │
+│              │     [Merge]     │  ◀── 오케스트레이터 직접 수행   │
+│              │        │        │                                  │
+│              │        ▼        │                                  │
+│              │  design_brief   │                                  │
+│              │      저장       │                                  │
+│              └────────┬────────┘                                  │
+│                       │                                           │
+│                       │ design_brief 주입                         │
+│                       ▼                                           │
+│              [Architect] ────▶ design_contract 저장              │
+│                       │                                           │
+│                       │ design_contract 주입                      │
+│                       ▼                                           │
+│              [QA Engineer] ──▶ test_contract 저장                │
+│                       │                                           │
+│                       │ design_contract + test_contract 주입      │
+│                       ▼                                           │
+│              [Implementer] ──▶ 구현 코드 작성                    │
+│                       │                                           │
+│                       │ test_contract 주입                        │
+│                       ▼                                           │
+│              [QA Engineer] ──▶ test_result 저장                  │
 │                                                                   │
 └──────────────────────────────────────────────────────────────────┘
 ```
