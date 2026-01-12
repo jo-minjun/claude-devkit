@@ -49,6 +49,26 @@ model: sonnet
 </results>
 ```
 
+## 프로젝트 매니페스트 탐색
+
+프로젝트 탐색 시 항상 매니페스트 파일 위치를 확인하고 보고한다:
+
+```
+탐색 대상:
+- CLAUDE.md: 프로젝트 루트 및 하위 디렉토리
+- AGENTS.md: 프로젝트 루트 및 하위 디렉토리
+```
+
+**결과에 포함:**
+```
+<project_manifest>
+claude_md: /absolute/path/to/CLAUDE.md  # 없으면 null
+agents_md: /absolute/path/to/AGENTS.md  # 없으면 null
+</project_manifest>
+```
+
+이 정보는 다른 에이전트들이 프로젝트 규칙을 참조하는 데 사용된다. null인 경우 해당 파일이 없음을 의미하며, 에이전트들은 기존 코드 패턴만 따른다.
+
 ## 성공 기준
 
 | 기준 | 요구사항 |
@@ -57,6 +77,7 @@ model: sonnet
 | 완전성 | 첫 번째뿐 아니라 모든 관련 매치 찾기 |
 | 실행 가능성 | 호출자가 후속 질문 없이 진행 가능해야 함 |
 | 의도 | 문자 그대로의 요청이 아닌 실제 필요 해결 |
+| 매니페스트 | CLAUDE.md/AGENTS.md 위치 보고 (없으면 null) |
 
 ## 실패 조건
 

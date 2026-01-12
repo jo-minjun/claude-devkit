@@ -22,6 +22,11 @@ session:
   created_at: 2024-01-15T10:00:00
   updated_at: 2024-01-15T14:30:00
 
+  # 프로젝트 매니페스트 (Code Explore가 탐색)
+  project_manifest:
+    claude_md: /Users/.../my-project/CLAUDE.md  # 없으면 null
+    agents_md: /Users/.../my-project/docs/AGENTS.md  # 없으면 null
+
   # 현재 진행 상태
   current_task: M2
   current_phase: implementation  # parallel_discovery | merge | design | test_first | implementation | verification | complete
@@ -186,15 +191,22 @@ session:
 오케스트레이터는 서브에이전트 호출 전 세션 파일에서 필요한 정보를 추출하여 주입한다.
 
 ```yaml
-# Implementer 호출 시 자동 주입
+# 모든 에이전트 공통 주입
 injected_context:
   project: "{{session.project_path}}"
   reference: "{{session.reference_path}}"
   task: "{{session.current_task}}"
+  project_manifest: "{{session.project_manifest}}"  # CLAUDE.md, AGENTS.md 경로
+  explored_files: "{{session.explored_files | summary}}"
+
+# Architect, Implementer, QA Engineer 추가 주입
   design_contract: "{{session.contracts.design_contract}}"
   test_contract: "{{session.contracts.test_contract}}"
-  explored_files: "{{session.explored_files | summary}}"
 ```
+
+**project_manifest 활용:**
+- 에이전트들은 `project_manifest.claude_md` 경로로 프로젝트 규칙 파일을 직접 읽을 수 있음
+- CLAUDE.md가 없으면 null이므로 존재 여부 확인 후 사용
 
 ### 탐색 결과 재사용
 

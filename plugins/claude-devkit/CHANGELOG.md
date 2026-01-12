@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-01-13
+
+### Added
+
+- **Project Manifest 자동 탐색**: CLAUDE.md, AGENTS.md 위치를 자동으로 탐색하여 세션에 저장
+  - Code Explore가 프로젝트 탐색 시 매니페스트 파일 위치 보고
+  - `session.project_manifest`에 저장되어 모든 에이전트가 참조 가능
+  - null 처리 지침: 파일이 없으면 기존 코드 패턴만 따름
+
+### Changed
+
+- **Architect 워크플로우 개선**: 1단계에서 project_manifest.claude_md 확인 후 조건부로 규칙 적용
+- **Code Explore 매니페스트 탐색**: 오케스트레이터 연동 여부와 무관하게 항상 탐색
+- **에이전트 컨텍스트 주입 개선**: 공통 헤더에 프로젝트 매니페스트 정보 추가
+
 ## [1.2.2] - 2026-01-12
 
 ### Changed

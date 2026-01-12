@@ -15,6 +15,10 @@
 - 참고: {{session.reference_path}}
 - 현재 작업: {{session.tasks[current].name}}
 - 현재 페이즈: {{session.current_phase}}
+
+[프로젝트 매니페스트]
+- CLAUDE.md: {{session.project_manifest.claude_md}}
+- AGENTS.md: {{session.project_manifest.agents_md}}
 ═══════════════════════════════════════════════════════════════
 
 [탐색된 파일 요약]
@@ -23,6 +27,7 @@
 {{/each}}
 
 상세 내용 필요 시 Read 도구로 직접 조회하세요.
+프로젝트 규칙 확인 필요 시 CLAUDE.md를 읽으세요. (null이면 기존 코드 패턴만 따름)
 ═══════════════════════════════════════════════════════════════
 ```
 
@@ -54,9 +59,13 @@ context:
 
 [요청 사항]
 1. 디렉토리 구조 파악
-2. CLAUDE.md, AGENTS.md 등 설정 파일 확인
+2. CLAUDE.md, AGENTS.md 위치 확인 (없으면 null로 보고)
 3. 주요 소스 파일 요약 (각 파일당 1-2줄)
 4. 결과를 다음 형식으로 출력:
+
+project_manifest:
+  claude_md: "/absolute/path/to/CLAUDE.md"  # 없으면 null
+  agents_md: "/absolute/path/to/AGENTS.md"  # 없으면 null
 
 explored_files:
   - path: "src/main/.../파일명.java"
@@ -64,7 +73,8 @@ explored_files:
 ```
 
 ### 출력
-`explored_files` 목록 → 세션에 저장
+- `project_manifest` → `session.project_manifest`에 저장
+- `explored_files` 목록 → `session.explored_files`에 저장
 
 ---
 

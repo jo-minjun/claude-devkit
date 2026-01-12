@@ -59,6 +59,7 @@ description: TDD 기반 개발 오케스트레이터. 기능 추가, 기능 변�
 
 3. **결과 저장**
    - Code Explore 결과 → `session.explored_files`
+   - Code Explore의 project_manifest → `session.project_manifest` (CLAUDE.md, AGENTS.md 경로)
    - Planner 결과 → `session.contracts.preliminary_design_brief`
 
 4. **Merge 페이즈로 전환**
