@@ -25,7 +25,7 @@ Claude Code 개발 도구 모음 플러그인입니다. TDD 오케스트레이�
 
 | 스킬 | 설명 |
 |-----|------|
-| **orchestrator** | TDD 기반 개발 오케스트레이터. Planner, Architect, QA Engineer, Implementer를 조율하여 테스트 우선 개발 루프 실행 |
+| **orchestrator** | TDD 기반 개발 오케스트레이터. Planner, Architect, QA Engineer, Implementer를 조율하여 테스트 우선 개발 루프 실행. 세션 컨텍스트 관리, Contract 체인, 상태 시각화 지원 |
 | **agent-creator** | 커스텀 서브에이전트 생성. `.claude/agents` 또는 `~/.claude/agents`에 새 에이전트 생성 |
 | **skill-creator** | 효과적인 스킬 생성 가이드. Claude의 기능을 전문 지식, 워크플로우, 도구 통합으로 확장 |
 | **mcp-builder** | MCP(Model Context Protocol) 서버 생성 가이드. Python(FastMCP)이나 Node/TypeScript로 외부 서비스 통합 |
