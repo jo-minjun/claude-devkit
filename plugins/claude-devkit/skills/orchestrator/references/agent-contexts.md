@@ -13,7 +13,7 @@
 [세션 컨텍스트]
 - 프로젝트: {{session.project_path}}
 - 참고: {{session.reference_path}}
-- 현재 마일스톤: {{session.milestones[current].name}}
+- 현재 작업: {{session.tasks[current].name}}
 - 현재 페이즈: {{session.current_phase}}
 ═══════════════════════════════════════════════════════════════
 
@@ -71,7 +71,7 @@ explored_files:
 ## 1. Planner 에이전트
 
 ### 역할
-요청 분석 및 마일스톤 정의
+요청 분석 및 작업 정의
 
 ### 주입할 컨텍스트
 ```yaml
@@ -89,14 +89,14 @@ context:
 
 [지시사항]
 다음 작업을 수행하라:
-1. 요청을 분석하여 단일 마일스톤으로 축소
-2. 마일스톤 완료 조건을 명확히 정의
+1. 요청을 분석하여 단일 작업으로 축소
+2. 작업 완료 조건을 명확히 정의
 3. 스코프 경계를 설정 (포함/미포함 항목 명시)
 4. Design Brief를 다음 형식으로 출력
 
 [출력 형식]
 design_brief:
-  milestone_name: [마일스톤명]
+  task_name: [작업명]
   objective: [목표]
   completion_criteria:
     - [완료 조건 1]
@@ -143,7 +143,7 @@ context:
 
 [출력 형식]
 design_contract:
-  milestone: [마일스톤명]
+  task: [작업명]
   invariants:
     - [불변 조건 1]
     - [불변 조건 2]
@@ -193,7 +193,7 @@ context:
 
 [출력 형식]
 test_contract:
-  milestone: [마일스톤명]
+  task: [작업명]
   test_cases:
     - name: [테스트명]
       target: [테스트 대상 인터페이스]

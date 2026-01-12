@@ -6,13 +6,13 @@
 
 ## Design Brief
 
-Planner → Architect로 전달되는 마일스톤 정의서.
+Planner → Architect로 전달되는 작업 정의서.
 
 ### 형식
 
 ```yaml
 design_brief:
-  milestone_name: 사용자 인증 기능
+  task_name: 사용자 인증 기능
   objective: JWT 기반 로그인/로그아웃 구현
 
   completion_criteria:
@@ -41,7 +41,7 @@ design_brief:
 
 | 필드 | 설명 |
 |------|------|
-| milestone_name | 마일스톤 식별 이름 |
+| task_name | 작업 식별 이름 |
 | objective | 달성 목표 (1-2문장) |
 | completion_criteria | 완료 판단 기준 목록 |
 | scope_in | 구현 범위 내 항목 |
@@ -57,7 +57,7 @@ Architect → QA Engineer로 전달되는 설계 명세서.
 
 ```yaml
 design_contract:
-  milestone: 사용자 인증 기능
+  task: 사용자 인증 기능
 
   invariants:
     - 도메인 레이어는 인프라에 의존하지 않는다
@@ -93,7 +93,7 @@ design_contract:
 
 | 필드 | 설명 |
 |------|------|
-| milestone | 대상 마일스톤명 |
+| task | 대상 작업명 |
 | invariants | 절대 위반 불가 규칙 |
 | interfaces | 공개 인터페이스 계약 |
 | boundaries | 의존성 경계 규칙 |
@@ -108,7 +108,7 @@ QA Engineer → Implementer로 전달되는 테스트 명세서.
 
 ```yaml
 test_contract:
-  milestone: 사용자 인증 기능
+  task: 사용자 인증 기능
 
   test_cases:
     - name: 유효한_자격증명으로_로그인_성공
@@ -152,7 +152,7 @@ test_contract:
 
 | 필드 | 설명 |
 |------|------|
-| milestone | 대상 마일스톤명 |
+| task | 대상 작업명 |
 | test_cases | Given-When-Then 형식 테스트 목록 |
 | coverage_targets | 커버리지 대상 메서드 |
 | test_file_path | 테스트 파일 경로 |

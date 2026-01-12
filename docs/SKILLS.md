@@ -55,7 +55,7 @@ Planning → Design → Test First → Implementation → Verification
 
 | 순서 | 에이전트 | 역할 | 출력 |
 |------|---------|------|------|
-| 1 | Planner | 마일스톤 정의 | Design Brief |
+| 1 | Planner | 작업 정의 | Design Brief |
 | 2 | Architect | 설계 확정 | Design Contract |
 | 3 | QA Engineer | 테스트 작성 | Test Contract + 테스트 코드 |
 | 4 | Implementer | 구현 | 구현 코드 |

@@ -1,18 +1,18 @@
 ---
 name: orchestrator
-description: TDD 기반 개발 오케스트레이터. 기능 추가, 기능 변경, 기능 구현 요청 시 자동 발동한다. "~해줘", "~만들어줘", "~추가해줘", "~구현해줘", "~개발해줘", "~변경해줘", "~수정해줘" 같은 코드 변경 요청에 트리거된다. Planner, Architect, QA Engineer, Implementer를 조율하여 테스트 우선 개발 루프를 실행하고, 마일스톤 완료까지 자동으로 진행한다.
+description: TDD 기반 개발 오케스트레이터. 기능 추가, 기능 변경, 기능 구현 요청 시 자동 발동한다. "~해줘", "~만들어줘", "~추가해줘", "~구현해줘", "~개발해줘", "~변경해줘", "~수정해줘" 같은 코드 변경 요청에 트리거된다. Planner, Architect, QA Engineer, Implementer를 조율하여 테스트 우선 개발 루프를 실행하고, 작업 완료까지 자동으로 진행한다.
 ---
 
 # TDD 오케스트레이터
 
-서브에이전트를 마일스톤 단위로 조율하여 TDD 기반 개발 루프를 실행한다.
+서브에이전트를 작업 단위로 조율하여 TDD 기반 개발 루프를 실행한다.
 
 ## 핵심 원칙
 
-1. **마일스톤 단위**: 한 번에 하나의 마일스톤만 처리
+1. **작업 단위**: 한 번에 하나의 작업만 처리
 2. **계약 기반**: 페이즈 간 Contract로 정보 전달
 3. **게이트 통제**: 조건 미충족 시 다음 단계 차단
-4. **자동 루프**: 마일스톤 완료까지 사용자 개입 없이 진행
+4. **자동 루프**: 작업 완료까지 사용자 개입 없이 진행
 5. **세션 유지**: 컨텍스트와 Contract를 세션 파일로 관리
 
 ## 오케스트레이션 루프
@@ -27,7 +27,7 @@ description: TDD 기반 개발 오케스트레이터. 기능 추가, 기능 변�
 ## 세션 관리
 
 오케스트레이터는 `~/.claude/claude-devkit/sessions/` 에 세션 파일을 관리한다.
-세션 파일에는 프로젝트 정보, 마일스톤 상태, Contract, 탐색 결과가 저장된다.
+세션 파일에는 프로젝트 정보, 작업 상태, Contract, 탐색 결과가 저장된다.
 
 상세: [session.md](references/session.md)
 
@@ -40,7 +40,7 @@ description: TDD 기반 개발 오케스트레이터. 기능 추가, 기능 변�
    session:
      project_path: {{현재 작업 디렉토리}}
      reference_path: {{참고 프로젝트 경로, 있는 경우}}
-     current_milestone: M1
+     current_task: M1
      current_phase: discovery
    ```
 
@@ -57,7 +57,7 @@ description: TDD 기반 개발 오케스트레이터. 기능 추가, 기능 변�
 | 순서 | 에이전트 | 역할 | 입력 | 출력 |
 |------|---------|------|------|------|
 | 0 | Code Explore | 프로젝트 탐색 | 프로젝트 경로 | explored_files |
-| 1 | Planner | 마일스톤 정의 | 사용자 요청 + explored_files | Design Brief |
+| 1 | Planner | 작업 정의 | 사용자 요청 + explored_files | Design Brief |
 | 2 | Architect | 설계 확정 | Design Brief | Design Contract |
 | 3 | QA Engineer | 테스트 작성 | Design Contract | Test Contract + 테스트 코드 |
 | 4 | Implementer | 구현 | Design Contract + Test Contract | 구현 코드 |
@@ -88,7 +88,7 @@ description: TDD 기반 개발 오케스트레이터. 기능 추가, 기능 변�
 [세션 컨텍스트]
 - 프로젝트: {{session.project_path}}
 - 참고: {{session.reference_path}}
-- 현재 마일스톤: {{session.current_milestone}}
+- 현재 작업: {{session.current_task}}
 
 [탐색된 파일 요약]
 {{session.explored_files | summary}}
@@ -132,7 +132,7 @@ description: TDD 기반 개발 오케스트레이터. 기능 추가, 기능 변�
 ║                              Verification ◀── Implementation
 ║                                                           ║
 ╠══════════════════════════════════════════════════════════╣
-║  Milestones                                               ║
+║  Tasks                                                    ║
 ║  ├─ M1 Repository      ✅ completed                       ║
 ║  ├─ M2 Service         🔄 in_progress  ← current          ║
 ║  └─ M3 Controller      ⏳ pending                         ║
@@ -256,8 +256,8 @@ description: TDD 기반 개발 오케스트레이터. 기능 추가, 기능 변�
 ### 7. Complete
 
 ```
-1. 마일스톤 완료 처리
-2. 다음 마일스톤 시작 또는 종료
+1. 작업 완료 처리
+2. 다음 작업 시작 또는 종료
 3. 최종 상태 출력
 ```
 
@@ -272,7 +272,7 @@ description: TDD 기반 개발 오케스트레이터. 기능 추가, 기능 변�
 
 ## 제약사항
 
-- 한 번에 하나의 마일스톤만 처리
+- 한 번에 하나의 작업만 처리
 - Contract 불완전 시 다음 단계 진행 금지
 - 테스트 없이 구현 완료 불가
 - 게이트 위반 시 이전 단계로 복귀

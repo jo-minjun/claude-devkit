@@ -1,6 +1,6 @@
 # 세션 컨텍스트 관리
 
-오케스트레이터는 세션 파일을 통해 마일스톤 진행 상태와 Contract를 관리한다.
+오케스트레이터는 세션 파일을 통해 작업 진행 상태와 Contract를 관리한다.
 
 ## 세션 파일 위치
 
@@ -23,11 +23,11 @@ session:
   updated_at: 2024-01-15T14:30:00
 
   # 현재 진행 상태
-  current_milestone: M2
+  current_task: M2
   current_phase: implementation
 
-  # 마일스톤 목록
-  milestones:
+  # 작업 목록
+  tasks:
     - id: M1
       name: Repository 인터페이스 생성
       status: completed
@@ -55,7 +55,7 @@ session:
   # Contract 저장소
   contracts:
     design_brief: |
-      milestone_name: Service 레이어 구현
+      task_name: Service 레이어 구현
       objective: Store, Customer, Mtrdno 서비스 구현
       completion_criteria:
         - HectoMpsStoreService CRUD
@@ -66,7 +66,7 @@ session:
         - Controller 구현
 
     design_contract: |
-      milestone: Service 레이어 구현
+      task: Service 레이어 구현
       invariants:
         - Service는 Repository만 의존
         - Entity에 비즈니스 로직 위임
@@ -75,7 +75,7 @@ session:
           methods: [listStores, createStore, getStore, updateStore]
 
     test_contract: |
-      milestone: Service 레이어 구현
+      task: Service 레이어 구현
       test_cases:
         - name: createStore_정상_생성
           target: HectoMpsStoreService.createStore
@@ -105,19 +105,19 @@ session:
   3. updated_at 갱신
 ```
 
-### 3. 마일스톤 완료 시
+### 3. 작업 완료 시
 
 ```
 동작:
-  1. 현재 마일스톤 status: completed
-  2. 다음 마일스톤 status: in_progress
-  3. contracts 초기화 (다음 마일스톤용)
+  1. 현재 작업 status: completed
+  2. 다음 작업 status: in_progress
+  3. contracts 초기화 (다음 작업용)
 ```
 
 ### 4. 세션 종료 조건
 
 ```
-- 모든 마일스톤 완료
+- 모든 작업 완료
 - 사용자 명시적 종료 (/orchestrator stop)
 - 24시간 비활성
 ```
@@ -133,7 +133,7 @@ session:
 injected_context:
   project: "{{session.project_path}}"
   reference: "{{session.reference_path}}"
-  milestone: "{{session.current_milestone}}"
+  task: "{{session.current_task}}"
   design_contract: "{{session.contracts.design_contract}}"
   test_contract: "{{session.contracts.test_contract}}"
   explored_files: "{{session.explored_files | summary}}"

@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Claude Code 확장을 위한 에이전트, 스킬, 훅 개발 키트",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "repository": "https://github.com/jo-minjun/claude-devkit"
   },
   "plugins": [
