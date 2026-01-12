@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-01-12
+
+### Changed
+
+- **Planner 작업 크기 기준 추가**: XS/S/M/L/XL 라벨로 작업 및 하위 작업 크기 명시
+  - 작업(Task): S(1-2파일) ~ XL(7개+, 분할 필요)
+  - 하위작업(Subtask): XS(단일 함수) ~ M(기능 단위)
+  - 분해 규칙: XL 작업 분할, M 초과 하위작업 재분해
+
+- **Prompt Generator 문서 개선**: SKILL.md를 73줄에서 356줄로 확장
+  - 좋은 프롬프트 vs 나쁜 프롬프트 비교 예시 (4가지 유형)
+  - 품질 체크리스트에 구체적 기준 및 나쁜/좋은 예 추가
+  - 유형별 빠른 템플릿 5종 추가
+
 ## [1.2.0] - 2026-01-12
 
 ### Added
