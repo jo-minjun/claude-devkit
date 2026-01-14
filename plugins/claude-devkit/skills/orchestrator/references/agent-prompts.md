@@ -98,6 +98,12 @@ explored_files:
 4. **코드 구조를 모르므로 가정(assumptions)을 명시적으로 기록**
 5. Task Breakdown을 다음 형식으로 출력
 
+[분해 규칙 - 필수]
+- 테스트를 별도 Subtask로 분리하지 말 것
+- 각 Subtask는 자체적으로 Test First → Implementation → Verification을 실행
+- "테스트 작성", "단위 테스트", "테스트 검증" 등의 Subtask 금지
+- Subtask는 구현 단위(클래스, 모듈, 기능)로 분해
+
 [출력 형식]
 task_breakdown:
   request_id: "R1"

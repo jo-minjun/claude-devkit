@@ -9,13 +9,51 @@ description: TDD 기반 개발 오케스트레이터. 기능 추가, 기능 변�
 
 ## 핵심 원칙
 
+**중요**: 아래 원칙들은 **반드시** 지켜져야 한다. 위반시 다음 단계로 진행이 불가능하다.
+
 1. **3-tier 계층**: Request → Task → Subtask 단위로 작업 분해
 2. **Subtask 단위 TDD**: Mini TDD Loop은 Subtask 단위에서 적용
 3. **계약 기반**: 페이즈 간 Contract로 정보 전달
 4. **게이트 통제**: 조건 미충족 시 다음 단계 차단
 5. **완료까지 자동 진행**: 모든 Task가 완료될 때까지 멈추지 않음
-6. **파일 기반**: 세션 상태와 Contract는 파일 시스템에 저장
-7. **지식 축적**: 파일 + claude-mem 검색을 통한 프로젝트 지식 활용
+6. **파일 기반**: 세션 상태와 Contract는 **반드시** 파일 시스템에 저장
+
+## 필수 파일 생성 규칙
+
+**중요**: 아래 파일들은 각 단계에서 **반드시** 생성해야 한다. 파일 생성을 생략하고 다음 단계로 진행하면 안 된다.
+
+| 단계 | 필수 생성 파일 | 생성 시점 |
+|------|---------------|----------|
+| 세션 시작 | session.json, state.json | `/orchestrator` 실행 직후 |
+| Global Discovery | explored.yaml, task-breakdown.yaml | Agent 완료 직후 |
+| Task Design | design-brief.yaml, design-contract.yaml | Architect 완료 직후 |
+| Test First | test-contract.yaml | QA Engineer 완료 직후 |
+| Verification | test-result.yaml | 테스트 실행 직후 |
+
+**위반 시 동작**: 파일이 생성되지 않으면 다음 단계로 진행할 수 없다.
+
+## Subtask 분해 규칙
+
+**중요**: Subtask는 TDD 루프(Test First → Implementation → Verification)가 적용되는 단위이다.
+
+### 올바른 분해
+각 Subtask가 자체적으로 Mini TDD Loop을 실행한다:
+```
+T1-S1: UserService 구현
+  └─ Test First → Implementation → Verification
+T1-S2: UserController 구현
+  └─ Test First → Implementation → Verification
+```
+
+### 잘못된 분해 (금지)
+테스트를 별도 Subtask로 분리하면 안 된다:
+```
+T1-S1: UserService 구현      ← 테스트 없이 구현
+T1-S2: UserController 구현   ← 테스트 없이 구현
+T1-S3: 단위 테스트 작성      ← ❌ 잘못됨! 테스트가 별도 Subtask
+```
+
+**위반 시**: Planner에게 재분해 요청
 
 ## 3-tier 계층 모델
 
@@ -369,9 +407,9 @@ Contract는 파일로 저장되며, 오케스트레이터가 Read로 조회하�
    - prompt: "[사용자 요청]\nTask/Subtask 분해 (assumptions 포함)"
    - subagent_type: "planner"
 
-4. 결과 저장:
-   - Write: contracts/{requestId}/explored.yaml
-   - Write: contracts/{requestId}/task-breakdown.yaml
+4. 결과 저장 (필수 - 생략 금지):
+   - Write: contracts/{requestId}/explored.yaml ← 반드시 생성
+   - Write: contracts/{requestId}/task-breakdown.yaml ← 반드시 생성
 
 5. state.json 업데이트 (request.status=active, task_order 설정)
 6. 첫 번째 Task 시작
@@ -387,8 +425,8 @@ For each Task in task_order:
 3. Read knowledge/{hash}/knowledge.yaml
 
 4. Architect 호출 (해당 Task에 대한 설계)
-5. Write contracts/{requestId}/{taskId}/design-brief.yaml
-6. Write contracts/{requestId}/{taskId}/design-contract.yaml
+5. Write contracts/{requestId}/{taskId}/design-brief.yaml ← 반드시 생성
+6. Write contracts/{requestId}/{taskId}/design-contract.yaml ← 반드시 생성
 
 7. state.json 업데이트:
    - tasks.{taskId}.status = "in_progress"
@@ -405,7 +443,7 @@ For each Subtask in subtask_order:
   [Test First]
   1. Read contracts/{requestId}/{taskId}/design-contract.yaml
   2. QA Engineer 호출
-  3. Write contracts/{requestId}/{taskId}/{subtaskId}/test-contract.yaml
+  3. Write contracts/{requestId}/{taskId}/{subtaskId}/test-contract.yaml ← 반드시 생성
   4. GATE-1 검증 (test-contract.yaml 존재 확인)
 
   [Implementation]
@@ -416,7 +454,7 @@ For each Subtask in subtask_order:
 
   [Verification]
   9. QA Engineer 호출 (테스트 실행)
-  10. Write contracts/{requestId}/{taskId}/{subtaskId}/test-result.yaml
+  10. Write contracts/{requestId}/{taskId}/{subtaskId}/test-result.yaml ← 반드시 생성
   11. GATE-2 검증
 
   [결과 처리]
@@ -456,6 +494,7 @@ For each Subtask in subtask_order:
 - 테스트 없이 구현 완료 불가 (각 Subtask마다 TDD 필수)
 - 게이트 위반 시 해당 레벨로 복귀
 - Task는 모든 Subtask 완료 시에만 완료 처리
+- **세션/Contract 파일 생성은 필수** - 파일 생성 없이 구현만 진행하면 안 됨
 
 ## 참조 문서
 

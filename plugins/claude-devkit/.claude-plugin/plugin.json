@@ -1,6 +1,6 @@
 {
   "name": "claude-devkit",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "TDD 오케스트레이션, 에이전트/스킬 생성, MCP 빌더, 프롬프트 생성 등 Claude Code 개발 도구 모음",
   "author": {
     "name": "minjun"

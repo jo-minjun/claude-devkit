@@ -57,25 +57,19 @@ tasks:
     objective: "a 기능 API 엔드포인트 구현"
     subtasks:
       - id: T1-S1
-        name: "API 스펙 확인"
-        description: "요구사항 및 기존 API 패턴 분석"
+        name: "AController 구현"
+        description: "a 기능 엔드포인트 (내부에서 TDD 적용)"
       - id: T1-S2
-        name: "테스트 작성"
-        description: "단위 테스트 작성"
-      - id: T1-S3
-        name: "컨트롤러 구현"
-        description: "엔드포인트 구현"
+        name: "AService 구현"
+        description: "a 비즈니스 로직 (내부에서 TDD 적용)"
 
   - id: T2
     name: "b API 구현"
     objective: "b 기능 API 엔드포인트 구현"
     subtasks:
       - id: T2-S1
-        name: "테스트 작성"
-        description: "단위 테스트 작성"
-      - id: T2-S2
-        name: "컨트롤러 구현"
-        description: "엔드포인트 구현"
+        name: "BController 구현"
+        description: "b 기능 엔드포인트 (내부에서 TDD 적용)"
 
 assumptions:
   - "인증 관련 코드는 auth/ 디렉토리에 있을 것"

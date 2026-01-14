@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] - 2026-01-14
+
+### Added
+
+- **필수 파일 생성 규칙**: 오케스트레이터가 각 단계에서 반드시 생성해야 하는 파일 명시
+  - session.json, state.json은 `/orchestrator` 실행 직후 생성
+  - Contract 파일들은 각 Agent 완료 직후 생성
+  - 파일 미생성 시 다음 단계 진행 차단
+
+- **Subtask 분해 규칙**: TDD가 올바르게 적용되도록 Planner 가이드라인 추가
+  - 테스트를 별도 Subtask로 분리 금지
+  - 각 Subtask는 자체적으로 Test First → Implementation → Verification 실행
+  - "테스트 작성", "단위 테스트" 등의 Subtask 명시적 금지
+
+### Changed
+
+- **contracts.md 예시 수정**: 테스트를 별도 Subtask로 분리하는 잘못된 예시 → 올바른 TDD 구조로 수정
+- **agent-prompts.md**: Planner 프롬프트에 `[분해 규칙 - 필수]` 섹션 추가
+- **SKILL.md**: 핵심 원칙에 필수 요건 강조 문구 추가
+
+### Fixed
+
+- 오케스트레이터가 세션/Contract 파일을 생성하지 않고 구현만 진행하는 문제 수정
+- Planner가 테스트를 별도 Subtask로 분리하여 TDD가 적용되지 않는 문제 수정
+
 ## [1.5.0] - 2026-01-14
 
 ### Added
