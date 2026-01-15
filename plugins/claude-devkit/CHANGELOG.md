@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.4] - 2026-01-15
+
+### Fixed
+
+- **훅 출력 hookEventName 버그 수정**: 각 훅이 올바른 이벤트 이름 반환하도록 수정
+  - `output_result()` 호출 시 `hook_event` 인자를 명시적으로 전달
+  - PostToolUse 훅이 "UserPromptSubmit" 대신 "PostToolUse" 반환
+  - 모든 훅에서 hookEventName 불일치 오류 해결
+
 ## [1.6.3] - 2026-01-15
 
 ### Fixed

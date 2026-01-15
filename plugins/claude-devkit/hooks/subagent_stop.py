@@ -125,7 +125,7 @@ def main():
     if next_message:
         lines.append(f"-> {next_message}")
 
-    output_result("\n".join(lines))
+    output_result("\n".join(lines), hook_event="SubagentStop")
 
 
 if __name__ == "__main__":

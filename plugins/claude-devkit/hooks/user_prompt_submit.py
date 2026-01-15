@@ -268,9 +268,9 @@ def main():
         if has_active_session:
             current_work = get_current_work(state)
             message = generate_resume_message(state, current_work)
-            output_result(message)
+            output_result(message, hook_event="UserPromptSubmit")
         else:
-            output_result("[Orchestrator] 재개할 세션이 없습니다. 새 요청을 입력하세요.")
+            output_result("[Orchestrator] 재개할 세션이 없습니다. 새 요청을 입력하세요.", hook_event="UserPromptSubmit")
         return
 
     # 2. 새 세션 시작 키워드
@@ -280,7 +280,7 @@ def main():
             state["request"]["status"] = "cancelled"
             save_state(project_hash, state)
 
-        output_result("[Orchestrator] 새 세션을 시작합니다. 요청을 입력하세요.")
+        output_result("[Orchestrator] 새 세션을 시작합니다. 요청을 입력하세요.", hook_event="UserPromptSubmit")
         return
 
     # 3. 오케스트레이션 키워드 감지
@@ -289,7 +289,7 @@ def main():
         if has_active_session and is_same_session(state):
             current_work = get_current_work(state)
             message = generate_resume_message(state, current_work)
-            output_result(message)
+            output_result(message, hook_event="UserPromptSubmit")
         return
 
     # 4. 세션 처리
@@ -303,7 +303,7 @@ def main():
 
     # 6. 시작 메시지 출력
     message = generate_orchestration_start_message(prompt)
-    output_result(message)
+    output_result(message, hook_event="UserPromptSubmit")
 
 
 if __name__ == "__main__":

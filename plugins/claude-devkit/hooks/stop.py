@@ -108,7 +108,7 @@ def main():
                 "To explicitly stop: '/orchestrator stop'",
             ])
 
-            output_result("\n".join(lines))
+            output_result("\n".join(lines), hook_event="Stop")
 
         elif request_status == "completed":
             # 완료 시 지식 자동 업데이트
@@ -116,7 +116,7 @@ def main():
 
             if updates:
                 message = f"Session completed. knowledge.yaml updated: {len(updates)} items added"
-                output_result(message)
+                output_result(message, hook_event="Stop")
 
     finally:
         # 환경변수 정리

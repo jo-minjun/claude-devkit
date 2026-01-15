@@ -122,12 +122,12 @@ def main():
                 current_work = get_current_work(state)
                 knowledge = load_knowledge(project_hash)
                 message = generate_recovery_message(state, current_work, knowledge)
-                output_result(message)
+                output_result(message, hook_event="SessionStart")
                 return
 
     # 3. 기존 세션 없거나 완료 상태 → 새 세션 준비 안내
     message = generate_new_session_message()
-    output_result(message)
+    output_result(message, hook_event="SessionStart")
 
 
 if __name__ == "__main__":

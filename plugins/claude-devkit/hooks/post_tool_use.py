@@ -336,7 +336,7 @@ def main():
         all_outputs.extend(messages)
 
     if all_outputs:
-        output_result("\n".join(all_outputs))
+        output_result("\n".join(all_outputs), hook_event="PostToolUse")
 
 
 if __name__ == "__main__":

@@ -86,7 +86,7 @@ def main():
         "To resume: '/orchestrator resume'",
     ])
 
-    output_result("\n".join(lines))
+    output_result("\n".join(lines), hook_event="PreCompact")
 
 
 if __name__ == "__main__":
