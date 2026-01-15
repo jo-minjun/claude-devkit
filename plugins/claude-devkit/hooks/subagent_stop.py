@@ -22,10 +22,20 @@ from hooks.common import (
     log_orchestrator,
     get_project_hash,
     load_state,
+    save_state,
     get_current_work,
     get_sessions_path,
     get_agent_config,
     load_orchestrator_config,
+    load_task_breakdown,
+    convert_task_breakdown_to_state,
+    check_global_discovery_complete,
+    transition_to_task_loop,
+    get_next_phase_for_agent,
+    update_subtask_phase,
+    complete_current_subtask,
+    complete_current_task,
+    complete_request,
 )
 
 
@@ -46,6 +56,56 @@ def check_contract_exists(project_hash: str, current_work: dict, contract_name: 
         return False
 
     return contract_path.exists()
+
+
+def handle_agent_completion(project_hash: str, agent_type: str, current_phase: str) -> str:
+    """
+    에이전트 완료 시 상태 업데이트 처리
+
+    Args:
+        project_hash: 프로젝트 해시
+        agent_type: 완료된 에이전트 타입
+        current_phase: 현재 subtask phase
+
+    Returns:
+        상태 변경 결과 메시지
+    """
+    # 1. 다음 phase 결정
+    next_phase = get_next_phase_for_agent(agent_type, current_phase)
+    if not next_phase:
+        return ""
+
+    # 2. Subtask phase 업데이트
+    if next_phase == "complete":
+        # Subtask 완료 처리
+        success, next_subtask = complete_current_subtask(project_hash)
+        if not success:
+            return "Error: Failed to complete subtask"
+
+        if next_subtask:
+            # 다음 subtask로 이동
+            return f"Subtask completed. Moving to next subtask: {next_subtask}"
+        else:
+            # 모든 subtask 완료 -> Task 완료 처리
+            success, next_task = complete_current_task(project_hash)
+            if not success:
+                return "Error: Failed to complete task"
+
+            if next_task:
+                # 다음 task로 이동
+                return f"Task completed. Moving to next task: {next_task}"
+            else:
+                # 모든 task 완료 -> Request 완료 처리
+                if complete_request(project_hash):
+                    return "All tasks completed! Request finished."
+                else:
+                    return "Error: Failed to complete request"
+    else:
+        # Phase만 업데이트
+        if update_subtask_phase(project_hash, next_phase):
+            return f"Phase updated to: {next_phase}"
+        else:
+            return "Error: Failed to update phase"
 
 
 def get_next_phase_message(agent_type: str, current_phase: str) -> str:
@@ -110,6 +170,50 @@ def main():
     for contract in contracts:
         if contract and check_contract_exists(project_hash, current_work, contract, level):
             created_contracts.append(contract)
+
+    # ========== Global Discovery → Task Loop 전환 로직 ==========
+    global_phase = request.get("global_phase", "")
+    request_id = request.get("id", "R1")
+
+    # planner 완료 시: task-breakdown.yaml → state.json 반영
+    if agent_type == "planner" and "task-breakdown.yaml" in created_contracts:
+        breakdown = load_task_breakdown(project_hash, request_id)
+        if breakdown:
+            converted = convert_task_breakdown_to_state(breakdown)
+            state["task_order"] = converted["task_order"]
+            state["tasks"] = converted["tasks"]
+            save_state(project_hash, state)
+            log_orchestrator("task-breakdown.yaml parsed and state.json updated")
+
+    # Global Discovery 완료 조건 확인 및 phase 전환
+    if global_phase == "global_discovery":
+        complete, missing = check_global_discovery_complete(project_hash)
+        if complete:
+            if transition_to_task_loop(project_hash):
+                log_orchestrator("Global Discovery completed -> Task Loop started")
+                # state 다시 로드하여 최신 상태 반영
+                state = load_state(project_hash)
+                global_phase = state.get("request", {}).get("global_phase", "")
+        else:
+            log_orchestrator(f"Global Discovery incomplete. Missing: {', '.join(missing)}")
+    # ========== Global Discovery 전환 로직 끝 ==========
+
+    # ========== Task Loop 상태 업데이트 로직 ==========
+    # Task Loop 단계에서만 동작
+    if global_phase == "task_loop":
+        agent_level = agent_config.get("level", "request")
+
+        # subtask 레벨 에이전트: 상태 업데이트
+        if agent_level == "subtask":
+            status_message = handle_agent_completion(project_hash, agent_type, current_phase)
+            if status_message:
+                log_orchestrator(status_message)
+
+        # architect 완료: 첫 subtask phase를 test_first로 설정
+        elif agent_type == "architect" and agent_level == "task":
+            if update_subtask_phase(project_hash, "test_first"):
+                log_orchestrator("Architect completed. Subtask phase set to test_first")
+    # ========== Task Loop 상태 업데이트 로직 끝 ==========
 
     # 다음 단계 메시지 생성
     next_message = get_next_phase_message(agent_type, current_phase)

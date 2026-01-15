@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.7] - 2026-01-15
+
+### Fixed
+
+- **Global Discovery → Task Loop 전환 시 state.json 미업데이트 버그 수정**
+  - `subagent_stop.py`에서 planner 완료 시 `task-breakdown.yaml` 파싱하여 state.json 반영
+  - `explored.yaml` + `task-breakdown.yaml` 둘 다 존재 시 `global_phase`를 "task_loop"으로 자동 전환
+  - 첫 번째 task/subtask를 current_task/current_subtask로 자동 설정
+
+### Added
+
+- **Task/Subtask 상태 자동 업데이트 로직**
+  - Architect 완료 → subtask.phase = "test_first"
+  - QA Engineer (test_first) 완료 → subtask.phase = "implementation"
+  - Implementer 완료 → subtask.phase = "verification"
+  - QA Engineer (verification) 완료 → subtask 완료, 다음 subtask로 자동 이동
+  - 모든 subtask 완료 → task 완료, 다음 task로 자동 이동
+  - 모든 task 완료 → request 완료 처리
+- **orchestrator 트리거 키워드 추가**: "리팩터링해줘"
+
 ## [1.6.6] - 2026-01-15
 
 ### Changed

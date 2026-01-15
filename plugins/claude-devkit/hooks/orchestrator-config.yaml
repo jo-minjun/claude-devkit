@@ -14,6 +14,7 @@ keywords:
     - "개발해\\s*줘"
     - "변경해\\s*줘"
     - "수정해\\s*줘"
+    - "리팩터링해\\s*줘"
     - "/orchestrator"
     - "/orchestrate"
   skip:

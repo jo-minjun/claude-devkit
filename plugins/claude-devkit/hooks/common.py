@@ -127,6 +127,29 @@ def get_agent_config(agent_type: str) -> Optional[Dict[str, Any]]:
     return config.get("agents", {}).get(agent_type)
 
 
+def get_next_phase_for_agent(agent_type: str, current_phase: str) -> Optional[str]:
+    """
+    에이전트 완료 후 다음 phase 결정
+
+    Args:
+        agent_type: 에이전트 타입 (architect, qa-engineer, implementer)
+        current_phase: 현재 subtask phase
+
+    Returns:
+        다음 phase 또는 None
+    """
+    agent_config = get_agent_config(agent_type)
+    if not agent_config:
+        return None
+
+    # QA Engineer는 phase에 따라 다른 전환
+    next_phase_map = agent_config.get("next_phase_map")
+    if next_phase_map and current_phase in next_phase_map:
+        return next_phase_map[current_phase]
+
+    return agent_config.get("next_phase")
+
+
 def get_phase_transition(phase: str) -> Optional[Dict[str, Any]]:
     """Phase 전환 설정 조회"""
     config = load_orchestrator_config()
@@ -643,3 +666,373 @@ def merge_patterns(existing: Dict[str, Any], new: Dict[str, Any]) -> Dict[str, A
             pass
 
     return merged, added
+
+
+# =============================================================================
+# Global Discovery → Task Loop 전환 함수
+# =============================================================================
+
+def load_task_breakdown(project_hash: str, request_id: str = "R1") -> Optional[Dict[str, Any]]:
+    """
+    task-breakdown.yaml 로드
+
+    경로: .claude/orchestrator/sessions/{hash}/contracts/{requestId}/task-breakdown.yaml
+    """
+    if yaml is None:
+        return None
+
+    sessions_path = get_sessions_path(project_hash)
+    breakdown_path = sessions_path / "contracts" / request_id / "task-breakdown.yaml"
+
+    if not breakdown_path.exists():
+        return None
+
+    try:
+        return yaml.safe_load(breakdown_path.read_text(encoding="utf-8"))
+    except (yaml.YAMLError, IOError):
+        return None
+
+
+def convert_task_breakdown_to_state(breakdown: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    task-breakdown.yaml의 tasks를 state.json의 tasks 형식으로 변환
+
+    Input (task-breakdown.yaml):
+        task_breakdown:
+          tasks:
+            - id: "T1"
+              name: "..."
+              objective: "..."
+              subtasks:
+                - id: "T1-S1"
+                  name: "..."
+                  description: "..."
+          task_order: ["T1", "T2"]
+
+    Output (state.json format):
+        {
+            "task_order": ["T1", "T2"],
+            "tasks": {
+                "T1": {
+                    "name": "...",
+                    "objective": "...",
+                    "status": "pending",
+                    "current_subtask": None,
+                    "subtask_order": ["T1-S1", "T1-S2"],
+                    "subtasks": {
+                        "T1-S1": {"name": "...", "description": "...", "status": "pending", "phase": ""}
+                    }
+                }
+            }
+        }
+    """
+    result = {
+        "task_order": [],
+        "tasks": {}
+    }
+
+    task_breakdown = breakdown.get("task_breakdown", {})
+    tasks_list = task_breakdown.get("tasks", [])
+    task_order = task_breakdown.get("task_order", [])
+
+    # task_order가 없으면 tasks 순서대로 생성
+    if not task_order:
+        task_order = [t.get("id") for t in tasks_list if t.get("id")]
+
+    result["task_order"] = task_order
+
+    for task in tasks_list:
+        task_id = task.get("id", "")
+        if not task_id:
+            continue
+
+        subtasks_list = task.get("subtasks", [])
+        subtask_order = [st.get("id") for st in subtasks_list if st.get("id")]
+        subtasks_dict = {}
+
+        for subtask in subtasks_list:
+            subtask_id = subtask.get("id", "")
+            if subtask_id:
+                subtasks_dict[subtask_id] = {
+                    "name": subtask.get("name", ""),
+                    "description": subtask.get("description", ""),
+                    "status": "pending",
+                    "phase": "",
+                }
+
+        result["tasks"][task_id] = {
+            "name": task.get("name", ""),
+            "objective": task.get("objective", ""),
+            "status": "pending",
+            "current_subtask": None,
+            "subtask_order": subtask_order,
+            "subtasks": subtasks_dict,
+        }
+
+    return result
+
+
+def check_explored_exists(project_hash: str, request_id: str = "R1") -> bool:
+    """explored.yaml 존재 여부 확인"""
+    sessions_path = get_sessions_path(project_hash)
+    explored_path = sessions_path / "contracts" / request_id / "explored.yaml"
+    return explored_path.exists()
+
+
+def check_global_discovery_complete(project_hash: str) -> Tuple[bool, List[str]]:
+    """
+    Global Discovery 완료 조건 확인
+
+    Returns:
+        (완료 여부, 누락된 Contract 목록)
+    """
+    state = load_state(project_hash)
+    if not state:
+        return False, ["state.json not found"]
+
+    request_id = state.get("request", {}).get("id", "R1")
+    missing = []
+
+    # 설정에서 필수 Contract 확인
+    transition = get_phase_transition("global_discovery")
+    requires = transition.get("requires", ["explored.yaml", "task-breakdown.yaml"]) if transition else ["explored.yaml", "task-breakdown.yaml"]
+
+    sessions_path = get_sessions_path(project_hash)
+    contract_path = sessions_path / "contracts" / request_id
+
+    for contract in requires:
+        if not (contract_path / contract).exists():
+            missing.append(contract)
+
+    return len(missing) == 0, missing
+
+
+def transition_to_task_loop(project_hash: str) -> bool:
+    """
+    global_discovery → task_loop 전환
+
+    조건:
+    - explored.yaml 존재
+    - task-breakdown.yaml 존재
+
+    동작:
+    1. task-breakdown.yaml 파싱
+    2. state.json에 tasks 반영
+    3. global_phase를 task_loop으로 변경
+    4. 첫 번째 task를 current_task로 설정
+    5. 첫 번째 task의 첫 번째 subtask를 current_subtask로 설정
+
+    Returns:
+        성공 여부
+    """
+    state = load_state(project_hash)
+    if not state:
+        return False
+
+    request_id = state.get("request", {}).get("id", "R1")
+
+    # 조건 확인
+    if not check_explored_exists(project_hash, request_id):
+        return False
+
+    breakdown = load_task_breakdown(project_hash, request_id)
+    if not breakdown:
+        return False
+
+    # task-breakdown을 state 형식으로 변환
+    converted = convert_task_breakdown_to_state(breakdown)
+
+    # state 업데이트
+    state["task_order"] = converted["task_order"]
+    state["tasks"] = converted["tasks"]
+
+    # global_phase 전환
+    state["request"]["global_phase"] = "task_loop"
+
+    # 첫 번째 task 설정
+    if converted["task_order"]:
+        first_task_id = converted["task_order"][0]
+        state["request"]["current_task"] = first_task_id
+
+        # 첫 번째 task의 상태를 in_progress로
+        if first_task_id in state["tasks"]:
+            state["tasks"][first_task_id]["status"] = "in_progress"
+
+            # 첫 번째 subtask 설정
+            subtask_order = state["tasks"][first_task_id].get("subtask_order", [])
+            if subtask_order:
+                first_subtask_id = subtask_order[0]
+                state["tasks"][first_task_id]["current_subtask"] = first_subtask_id
+                state["tasks"][first_task_id]["subtasks"][first_subtask_id]["status"] = "in_progress"
+
+    return save_state(project_hash, state)
+
+
+# =============================================================================
+# Task/Subtask 상태 업데이트 함수
+# =============================================================================
+
+def update_subtask_phase(project_hash: str, new_phase: str) -> bool:
+    """
+    현재 subtask의 phase 업데이트
+
+    Args:
+        project_hash: 프로젝트 해시
+        new_phase: 새로운 phase (test_first, implementation, verification, complete)
+
+    Returns:
+        성공 여부
+    """
+    state = load_state(project_hash)
+    if not state:
+        return False
+
+    current_task_id = state.get("request", {}).get("current_task")
+    if not current_task_id:
+        return False
+
+    task = state.get("tasks", {}).get(current_task_id)
+    if not task:
+        return False
+
+    current_subtask_id = task.get("current_subtask")
+    if not current_subtask_id:
+        return False
+
+    subtask = task.get("subtasks", {}).get(current_subtask_id)
+    if not subtask:
+        return False
+
+    state["tasks"][current_task_id]["subtasks"][current_subtask_id]["phase"] = new_phase
+
+    return save_state(project_hash, state)
+
+
+def complete_current_subtask(project_hash: str) -> Tuple[bool, Optional[str]]:
+    """
+    현재 subtask 완료 처리 및 다음 subtask로 이동
+
+    Returns:
+        (성공 여부, 다음 subtask_id 또는 None)
+        - (True, subtask_id): 다음 subtask로 이동 성공
+        - (True, None): 모든 subtask 완료 (task 완료 필요)
+        - (False, None): 오류
+    """
+    state = load_state(project_hash)
+    if not state:
+        return False, None
+
+    current_task_id = state.get("request", {}).get("current_task")
+    if not current_task_id:
+        return False, None
+
+    task = state.get("tasks", {}).get(current_task_id)
+    if not task:
+        return False, None
+
+    current_subtask_id = task.get("current_subtask")
+    if not current_subtask_id:
+        return False, None
+
+    # 현재 subtask 완료 처리
+    state["tasks"][current_task_id]["subtasks"][current_subtask_id]["status"] = "completed"
+    state["tasks"][current_task_id]["subtasks"][current_subtask_id]["phase"] = "complete"
+
+    # 다음 subtask 찾기
+    subtask_order = task.get("subtask_order", [])
+    try:
+        current_idx = subtask_order.index(current_subtask_id)
+        next_idx = current_idx + 1
+    except ValueError:
+        save_state(project_hash, state)
+        return True, None
+
+    # 다음 subtask 있음
+    if next_idx < len(subtask_order):
+        next_subtask_id = subtask_order[next_idx]
+        state["tasks"][current_task_id]["current_subtask"] = next_subtask_id
+        state["tasks"][current_task_id]["subtasks"][next_subtask_id]["status"] = "in_progress"
+        save_state(project_hash, state)
+        return True, next_subtask_id
+
+    # 모든 subtask 완료
+    save_state(project_hash, state)
+    return True, None
+
+
+def complete_current_task(project_hash: str) -> Tuple[bool, Optional[str]]:
+    """
+    현재 task 완료 처리 및 다음 task로 이동
+
+    Returns:
+        (성공 여부, 다음 task_id 또는 None)
+        - (True, task_id): 다음 task로 이동 성공
+        - (True, None): 모든 task 완료 (request 완료 필요)
+        - (False, None): 오류
+    """
+    state = load_state(project_hash)
+    if not state:
+        return False, None
+
+    current_task_id = state.get("request", {}).get("current_task")
+    if not current_task_id:
+        return False, None
+
+    task = state.get("tasks", {}).get(current_task_id)
+    if not task:
+        return False, None
+
+    # 현재 task 완료 처리
+    state["tasks"][current_task_id]["status"] = "completed"
+    state["tasks"][current_task_id]["current_subtask"] = None
+
+    # 다음 task 찾기
+    task_order = state.get("task_order", [])
+    try:
+        current_idx = task_order.index(current_task_id)
+        next_idx = current_idx + 1
+    except ValueError:
+        save_state(project_hash, state)
+        return True, None
+
+    # 다음 task 있음
+    if next_idx < len(task_order):
+        next_task_id = task_order[next_idx]
+        state["request"]["current_task"] = next_task_id
+        state["tasks"][next_task_id]["status"] = "in_progress"
+
+        # 첫 번째 subtask 설정
+        subtask_order = state["tasks"][next_task_id].get("subtask_order", [])
+        if subtask_order:
+            first_subtask_id = subtask_order[0]
+            state["tasks"][next_task_id]["current_subtask"] = first_subtask_id
+            state["tasks"][next_task_id]["subtasks"][first_subtask_id]["status"] = "in_progress"
+
+        save_state(project_hash, state)
+        return True, next_task_id
+
+    # 모든 task 완료
+    save_state(project_hash, state)
+    return True, None
+
+
+def complete_request(project_hash: str) -> bool:
+    """
+    Request 완료 처리
+
+    모든 Task가 완료되었을 때 호출.
+    - request.status = "completed"
+    - request.global_phase = "complete"
+
+    Returns:
+        성공 여부
+    """
+    state = load_state(project_hash)
+    if not state:
+        return False
+
+    state["request"]["status"] = "completed"
+    state["request"]["global_phase"] = "complete"
+    state["request"]["current_task"] = None
+
+    return save_state(project_hash, state)

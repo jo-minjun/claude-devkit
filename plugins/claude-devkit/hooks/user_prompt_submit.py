@@ -37,7 +37,9 @@ from hooks.common import (
 RESUME_KEYWORDS = [
     r"이어서\s*진행",
     r"이어서\s*작업",
+    r"이어서\s*해줘",
     r"계속\s*진행",
+    r"계속\s*해줘",
     r"resume",
     r"/orchestrator\s+resume",
 ]
