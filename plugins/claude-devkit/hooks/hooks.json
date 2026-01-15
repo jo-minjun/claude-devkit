@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 hooks/user_prompt_submit.py"
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/user_prompt_submit.py"
           }
         ]
       }
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 hooks/session_start.py"
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/session_start.py"
           }
         ]
       }
@@ -25,7 +25,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 hooks/stop.py"
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/stop.py"
           }
         ]
       }
@@ -36,7 +36,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 hooks/pre_tool_use.py"
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/pre_tool_use.py"
           }
         ]
       }
@@ -47,7 +47,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 hooks/post_tool_use.py"
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/post_tool_use.py"
           }
         ]
       }
@@ -57,7 +57,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 hooks/pre_compact.py"
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/pre_compact.py"
           }
         ]
       }
@@ -67,7 +67,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 hooks/subagent_stop.py"
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/subagent_stop.py"
           }
         ]
       }
@@ -77,7 +77,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 hooks/notification.py"
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/notification.py"
           }
         ]
       }

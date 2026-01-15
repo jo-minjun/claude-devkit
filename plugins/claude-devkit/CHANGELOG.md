@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.1] - 2026-01-15
+
+### Fixed
+
+- **hooks.json 경로 문제 수정**: 상대 경로를 `${CLAUDE_PLUGIN_ROOT}` 환경변수로 변경
+  - 사용자의 작업 디렉토리와 무관하게 훅 스크립트를 올바르게 찾음
+  - `python3 hooks/xxx.py` → `python3 ${CLAUDE_PLUGIN_ROOT}/hooks/xxx.py`
+
 ## [1.6.0] - 2026-01-15
 
 ### Added
