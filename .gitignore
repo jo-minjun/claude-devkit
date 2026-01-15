@@ -38,3 +38,4 @@ out/
 
 ### AI Tools ###
 .claude/*.local.*
+.claude/orchestrator/
